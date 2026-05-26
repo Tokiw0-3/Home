@@ -635,14 +635,7 @@
       "CSS":        "#563d7c"
     };
 
-    const POSTS = [
-      {
-        date: "2026-05-26",
-        title: "LineageOS 23.2 GSI guide published",
-        body: "Updated the Redmi Pad Pro guide to cover the 23.0 → 23.2 update path.\nNo-data-loss upgrade steps, plus KernelSU root instructions.",
-        tags: ["dizi", "lineageos", "android16"]
-      },
-    ].reverse();
+    const POSTS_REPO = "Tokiw0-3/Home";
 
     // ── YouTube channel ID (auto-detected, paste once if it changes) ──
     const YT_CHANNEL_ID = "UCU78y1481tZraroe93TFCUg";
@@ -740,20 +733,28 @@
       }
     }
 
-    function renderPosts() {
+    async function renderPosts() {
       const el = document.getElementById("posts");
-      if (!POSTS.length) {
-        el.innerHTML = `<div class="glass post-card" style="text-align:center;color:var(--text-dim);padding:28px;">No posts yet.</div>`;
-        return;
+      try {
+        const res = await fetch(`https://api.github.com/repos/${POSTS_REPO}/issues?per_page=20&sort=created&direction=desc`);
+        if (!res.ok) throw new Error("API error");
+        const issues = await res.json();
+        const filtered = issues.filter(i => i.user.login === "Tokiw0-3");
+        if (!filtered.length) {
+          el.innerHTML = `<div class="glass post-card" style="text-align:center;color:var(--text-dim);padding:28px;">No posts yet.</div>`;
+          return;
+        }
+        el.innerHTML = filtered.map(i => `
+          <div class="glass post-card">
+            <div class="post-date">${i.created_at.slice(0, 10)}</div>
+            <div class="post-title">${i.title}</div>
+            ${i.body ? `<div class="post-body">${i.body}</div>` : ''}
+            ${i.labels && i.labels.length ? `<div class="post-tags">${i.labels.map(l => `<span>${l.name}</span>`).join('')}</div>` : ''}
+          </div>
+        `).join("");
+      } catch {
+        el.innerHTML = `<div class="glass post-card" style="text-align:center;color:var(--text-dim);padding:28px;">Could not load posts.</div>`;
       }
-      el.innerHTML = POSTS.map(p => `
-        <div class="glass post-card">
-          <div class="post-date">${p.date}</div>
-          <div class="post-title">${p.title}</div>
-          ${p.body ? `<div class="post-body">${p.body}</div>` : ''}
-          ${p.tags && p.tags.length ? `<div class="post-tags">${p.tags.map(t => `<span>${t}</span>`).join('')}</div>` : ''}
-        </div>
-      `).join("");
     }
 
     function animateDropIn(container, stagger = 60) {
